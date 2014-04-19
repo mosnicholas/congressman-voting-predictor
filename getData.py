@@ -31,10 +31,13 @@ baseRollCallURL = "http://api.nytimes.com/svc/politics/v3/us/legislative/congres
 baseVotingDataURL = "http://api.nytimes.com/svc/politics/v3/us/legislative/congress/{0}/{1}/votes/{2}.json?api-key=" + congressApiKey
 	# The {2} signifies what type of vote – party | missed | loneno | perfect ––> corresponding to voting w/ party, voting attendance, only no vote, the members who voted only yes/no on every vote
 	# For more info, look here: http://developer.nytimes.com/docs/congress_api#h3-votes-by-type
-baseBillsDataURL = "http://api.nytimes.com/svc/politics/v3/us/legislative/congress/{0}/{1}/bills/{2}.json?api-key=" + congressApiKey
-	# The {2} signifies what type of bill – introduced | updated | passed | major ---> straightforward except major – this is deemed by NyTimes to be important bills 
-	# For more info, look here: http://developer.nytimes.com/docs/congress_api#h3-bills
-
+baseBillsDataURL = "http://api.nytimes.com/svc/politics/v3/us/legislative/congress/{0}{1}/bills/{2}.json?api-key=" + congressApiKey
+	# if {1} is specified, this it refers to the above {1} (house | senate) & {2} refers to the following:
+		# The {2} signifies what type of bill – introduced | updated | passed | major ---> straightforward except major – this is deemed by NyTimes to be important bills 
+		# For more info, look here: http://developer.nytimes.com/docs/congress_api#h3-bills
+	# if {1} is not specified, we are looking at bill details.
+		# The {2} signifies the bill-id
+		# For more info, look here: http://developer.nytimes.com/docs/congress_api#h3-bill-details
 
 def helperURLGet(apiURL):
 	data = urlopen(apiURL).read()
@@ -71,4 +74,14 @@ def getVotingData(congressNumber, chamber, voteType):
 def getBillsData(congressNumber, chamber, voteType):
 	# This api call returns a json object
 	apiURL = baseBillsDataURL.format(str(congressNumber), chamber, voteType)
+	return helperURLGet(apiURL)
+
+def getBillsDetails(congressNumber, billID):
+	# This api call returns a json object
+	apiURL = baseBillsDataURL.format(str(congressNumber), "", billID)
+	return helperURLGet(apiURL)
+
+def getBillsSubjectTerms(congressNumber, billID, resource):
+	# This api call returns a json object
+	apiURL = baseBillsDataURL.format(str(congressNumber), "", billID + "/" + resource)
 	return helperURLGet(apiURL)
