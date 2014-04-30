@@ -4,6 +4,8 @@ from getData import *
 from urllib import urlopen
 from time import sleep
 
+senatorInfo = json.loads(open("../data/memberBios.json", "r").read())
+subjectMapping = json.loads(open("../data/subjectMapping.json", "r").read().replace("\n", "").replace("\t", ""))
 apiKeys = json.loads(open("api_keys.json", "r").read().replace("\n", "").replace("\t", ""))
 congressApiKey = apiKeys["keys"]["Congress"]
 
@@ -11,7 +13,6 @@ billUrlNY = "http://api.nytimes.com/svc/politics/v3/us/legislative/congress/memb
 fileLoc = "../data/list_of_legislators.csv"
 memberBioFileLoc = "../data/memberBios.json"
 outputFile = "../data/bill_data.csv"
-senatorInfo = json.loads(open("../data/memberBios.json", "r").read())
 
 def getBillsBySenator(memberID):
 	sleep(1) # we are limited by NyTimes' 2 queries per second. fml.
@@ -66,7 +67,7 @@ def constructData():
  		for bill in billList:
  			features.writerow(bill)
 
-def getBillSubjects(billURL):
+def getBillDataAPI(billURL):
 	sleep(1) # we are limited by NyTimes' 2 queries per second. fml.
 	apiReply = urlopen(billURL).read()
 	try:
@@ -76,12 +77,27 @@ def getBillSubjects(billURL):
 		# print apiReply
 		return
 
+def findHeadTopic(subject):
+	for k, v in subjectMapping.iteritems():
+		if (subject in v) or (subject == k):
+			return k
+	return None
+
+def getSubjectsBill(subjectList):
+	generalSubjects = []
+	for subject in subjectList:
+		subjectName = subject["name"].lower().replace("&#x27;", "'")
+		headTopic = findHeadTopic(subjectName)
+		if headTopic and (headTopic not in generalSubjects):
+			generalSubjects.append(headTopic)
+	return generalSubjects
+
 def getBillInfo(billURL):
 	"""
 		Given the bill URL (that constructData() will feed in), this function will return a response of the following format:
 		["bill_id", "party_of_writer", {"subjects"}], where subjects will be a list of binary numbers in alphabetical order of possible subjects. 
 	"""
-	billAPIReply = getBillSubjects(billURL)
+	billAPIReply = getBillDataAPI(billURL)
 	if billAPIReply:
 		try:
 			print "getting bill info for bill @ url: " + billURL
@@ -90,7 +106,8 @@ def getBillInfo(billURL):
 			title = data["title"]
 			congress_number = data["congress"]
 			committee_number = makeCommitteeList(data["committees"])
-			return [title, party_of_writer, congress_number, committee_number]
+			subjects = getSubjectsBill(data["subjects"])
+			return [title, party_of_writer, congress_number, committee_number] + subjects
 		except:
 			print "FAILED AT GETBILLINFO: " + billURL
 			return ["", "", "", "", ""]	
