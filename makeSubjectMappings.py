@@ -5,6 +5,8 @@ from re import sub
 subjectMaps = "../data/subjectMappings.html"
 outputFile = "../data/subjectMapping.json"
 
+# Look at http://thomas.loc.gov/help/terms-subjects.html for more information
+
 f = open(subjectMaps, 'r').read()
 
 def getSubjectHeads(soup):
