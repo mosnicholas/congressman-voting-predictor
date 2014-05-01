@@ -14,6 +14,9 @@ fileLoc = "../data/list_of_legislators.csv"
 memberBioFileLoc = "../data/memberBios.json"
 outputFile = "../data/bill_data.csv"
 
+# this maps subject to value to be able to use it as a point to split on in decision trees.
+mapping = {"agriculture and food":0,"animals":1,"armed forces and national security":2,"arts, culture, religion":3,"civil rights and liberties, minority issues":4,"commerce":5,"congress":6,"crime and law enforcement":7,"economics and public finance":8,"education":9,"emergency management":10,"energy":11,"environmental protection":12,"families":13,"finance and financial sector":14,"foreign trade and international finance":15,"government operations and politics":16,"health":17,"housing and community development":18,"immigration":19,"international affairs":20,"labor and employment":21,"law":22,"native americans":23,"private legislation":24,"public lands and natural resources":25,"science, technology, communications":26,"social sciences and history":27,"social welfare":28,"sports and recreation":29,"taxation":30,"transportation and public works":31,"water resources development":32}
+
 def getBillsBySenator(memberID):
 	sleep(1) # we are limited by NyTimes' 2 queries per second. fml.
 	memberURL = billUrlNY.format(memberID)
@@ -52,18 +55,18 @@ def constructData():
 					else:
 						billDescription = getBillInfo(changeURL(billInfo["bill"]["bill_uri"]))
 						billSavedDescriptions[number] = billDescription
-					newEntry = newEntry + billDescription
-				else:
-					newEntry += ["", "", "", "", ""]
-				newEntry.append(changeAnswerToBinary(billInfo["position"]))
-				billList.append(newEntry)
+
+					newEntry.append(changeAnswerToBinary(billInfo["position"]))
+					
+					if billDescription:
+						newEntry = newEntry + billDescription
+						billList.append(newEntry)
 		else:
 			print memberID
 			continue
 	print "ready to write to file"
 	with open(outputFile, "w") as csvfile:
-		features = csv.writer(csvfile, delimiter=',',
-                            quotechar='|', quoting=csv.QUOTE_MINIMAL)
+		features = csv.writer(csvfile, delimiter='\t')
  		for bill in billList:
  			features.writerow(bill)
 
@@ -88,6 +91,7 @@ def getSubjectsBill(subjectList):
 	for subject in subjectList:
 		subjectName = subject["name"].lower().replace("&#x27;", "'")
 		headTopic = findHeadTopic(subjectName)
+		if headTopic:	headTopic = subjectToInt(headTopic)
 		if headTopic and (headTopic not in generalSubjects):
 			generalSubjects.append(headTopic)
 	return generalSubjects
@@ -110,52 +114,53 @@ def getBillInfo(billURL):
 			return [title, party_of_writer, congress_number, committee_number] + subjects
 		except:
 			print "FAILED AT GETBILLINFO: " + billURL
-			return ["", "", "", "", ""]	
+			return None
 	else:
-		return ["", "", "", "", ""]
+		return None
+
+def subjectToInt(subject):
+	return mapping[subject]
 
 def makeCommitteeList(description):
-	description = str(description)
-	if ("Agriculture" in description) or ("Nutrition" in description) or ("Forestry" in description):
+	description = str(description).lower()
+	if ("agriculture" in description) or ("nutrition" in description) or ("forestry" in description):
 		return 0
-	elif "Appropriations" in description:
+	elif "appropriations" in description:
 		return 1
-	elif "Armed" in description:
+	elif "armed" in description:
 		return 2
-	elif "Banking" in description or "Housing" in description or "Urban" in description:
+	elif "banking" in description or "housing" in description or "urban" in description:
 		return 3
-	elif "Budget" in description:
+	elif "budget" in description:
 		return 4
-	elif "Commerce" in description or "Science" in description or "Transportation" in description:
+	elif "commerce" in description or "science" in description or "transportation" in description:
 		return 5
-	elif "Energy" in description or "Natural" in description:
+	elif "energy" in description or "natural" in description:
 		return 6
-	elif "Environment" in description:
+	elif "environment" in description:
 		return 7
-	elif "Finance" in description:
+	elif "finance" in description:
 		return 8
-	elif "Foreign" in description:
+	elif "foreign" in description:
 		return 9
-	elif "Health" in description:
+	elif "health" in description:
 		return 10
-	elif "Homeland" in description:
+	elif "homeland" in description:
 		return 11
-	elif "Judiciary" in description:
+	elif "judiciary" in description:
 		return 12
-	elif "Rules" in description:
+	elif "rules" in description:
 		return 13
-	elif "Rules" in description:
+	elif "business" in description:
 		return 14
-	elif "Business" in description:
+	elif "veterans" in description:
 		return 15
-	elif "Veterans" in description:
+	elif "indians" in description:
 		return 16
-	elif "Indians" in description:
+	elif "ethics" in description:
 		return 17
-	elif "Ethics" in description:
+	elif "intelligence" in description:
 		return 18
-	elif "Intelligence" in description:
-		return 19
 	else:
 		return -1
 
